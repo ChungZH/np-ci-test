@@ -162,7 +162,7 @@ jobs:
           path: build/Notepanda.AppImage
       - name: Linux - ${{ matrix.qt_version }} - Upload release asset
         if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'ubuntu-16.04'
-        id: upload-release-asset 
+        id: upload-release-asset-linux
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
@@ -227,7 +227,7 @@ jobs:
           path: release.7z
       - name: Win - ${{ matrix.arch }} - ${{ matrix.qt_version }} - Upload release asset 
         if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'windows-latest'
-        id: upload-release-asset 
+        id: upload-release-asset-windows
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
@@ -273,7 +273,7 @@ jobs:
           path: build/notepanda.dmg
       - name: macOS - ${{ matrix.qt_version }} - Upload release asset 
         if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'macos-latest' 
-        id: upload-release-asset 
+        id: upload-release-asset-macos
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
