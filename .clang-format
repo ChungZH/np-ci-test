@@ -1,0 +1,12 @@
+# .clang-format
+Language:	Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterFunction: true
+  BeforeCatch: false
+  BeforeElse: false
