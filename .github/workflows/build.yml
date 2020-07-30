@@ -4,7 +4,35 @@ on:
   push:
 
 jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the version
+        id: get_version
+        shell: bash
+        run: |
+          echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)        
+          if test -s makespec/VERSIONSUFFIX; then
+            echo ::set-output name=ISBETA::false
+          else
+            echo ::set-output name=ISBETA::true
+          fi    
+      - name: Create Release      
+        if: startsWith(github.event.ref, 'refs/tags/')
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: ${{ steps.get_version.outputs.ISBETA }}  
+
   build:
+    name: Build
+    needs: create-release
     strategy:
       matrix:
         qt_version: [5.14.2]
@@ -40,18 +68,7 @@ jobs:
             echo ::set-output name=ISBETA::false
           else
             echo ::set-output name=ISBETA::true
-          fi
-      - name: Create Release      
-        if: startsWith(github.event.ref, 'refs/tags/')
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: true
-          prerelease: ${{ steps.get_version.outputs.ISBETA }}             
+          fi          
       - name: Install MSVC compiler
         uses: ilammy/msvc-dev-cmd@v1
         with:
