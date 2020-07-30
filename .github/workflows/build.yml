@@ -62,15 +62,27 @@ jobs:
         run: |
           echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)        
           if test -s makespec/VERSIONSUFFIX; then
-            echo ::set-output name=ISBETA::true
-          else
             echo ::set-output name=ISBETA::false
+          else
+            echo ::set-output name=ISBETA::true
           fi
       - name: Setup Ninja
         uses: ashutoshvarma/setup-ninja@master
         with:
           # ninja version to download. Default: 1.10.0
-          version: 1.10.0        
+          version: 1.10.0
+
+      - name: Create Release
+        if: startsWith(github.event.ref, 'refs/tags/')
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ steps.get_version.outputs }}
+          draft: true
+          prerelease: ${{ steps.get_version.outputs.ISBETA }}     
 # Linux------------------------------------------
       - name: Linux - Install packages
         if: matrix.platform == 'ubuntu-16.04'
@@ -148,17 +160,21 @@ jobs:
         with:
           name: Notepanda-${{ github.sha }}.Linux-${{ matrix.arch }}.qt${{ matrix.qt_version }}.AppImage
           path: build/Notepanda.AppImage
-      - name: Linux - ${{ matrix.qt_version }} - Upload binaries to release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'macos-latest'
-        with:
-          draft: true
-          prerelease: ${{ steps.get_version.outputs.ISBETA }}
-          files: build/Notepanda.AppImage
-          name: Notepanda.${{ steps.get_version.outputs.VERSION }}.Linux-${{ matrix.arch }}.AppImage
+      - name: Linux - ${{ matrix.qt_version }} - Upload release asset
+        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'ubuntu-16.04'
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
-      # Windows----------------------------------------------------------------------
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/Notepanda.AppImage
+          asset_name: Notepanda.${{ steps.get_version.outputs.VERSION }}.Linux-${{ matrix.arch }}.AppImage
+# Windows ----------------------------------------------------------------------
+#     - name: Win-${{ matrix.arch }} - ${{ matrix.qt_version }} - Build preparation - Download Dependencies
+#       if: matrix.platform == 'windows-latest'
+#       run: |
+#         choco install -y ninja
       - name: Win - Build ecm
         if: matrix.platform == 'windows-latest'
         env:
@@ -197,7 +213,29 @@ jobs:
           cmake --install .
           cd Release
           windeployqt notepanda.exe --no-translations
-      #---------------------------------------------------------
+      - name: Win - ${{ matrix.arch }} - ${{ matrix.qt_version }} - Create 7z Release
+        if: matrix.platform == 'windows-latest'
+        uses: DuckSoft/create-7z-action@v1.0
+        with:
+          pathSource: ./build/Release
+          pathTarget: ./release.7z
+      - name: Win - ${{ matrix.arch }} - ${{ matrix.qt_version }} - Uploading artifact
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@master
+        with:
+          name: Notepanda-${{ github.sha }}.Windows-${{ matrix.arch }}.qt${{ matrix.qt_version }}.7z
+          path: release.7z
+      - name: Win - ${{ matrix.arch }} - ${{ matrix.qt_version }} - Upload release asset 
+        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'windows-latest'
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release.7z
+          asset_name: Notepanda.${{ steps.get_version.outputs.VERSION }}.Windows-${{ matrix.arch }}.7z
+# MacOS ----------------------------------------------------------------------
       - name: MacOS - Build ecm
         if: matrix.platform == 'macos-latest'
         shell: bash
@@ -233,36 +271,13 @@ jobs:
         with:
           name: Notepanda-${{ github.sha }}.macOS-${{ matrix.arch }}.qt${{ matrix.qt_version }}.dmg
           path: build/notepanda.dmg
-      - name: macOS - ${{ matrix.qt_version }} - Upload binaries to release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'macos-latest'
-        with:
-          draft: true
-          prerelease: ${{ steps.get_version.outputs.ISBETA }}
-          files: build/notepanda.dmg
-          name: Notepanda-${{ steps.get_version.outputs.VERSION }}.macOS-${{ matrix.arch }}.dmg
+      - name: macOS - ${{ matrix.qt_version }} - Upload release asset 
+        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'macos-latest' 
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          
-      # --------------------------------------------------------
-      - name: Win-${{ matrix.arch }} - ${{ matrix.qt_version }} - Create 7z Release
-        if: matrix.platform == 'windows-latest'
-        uses: DuckSoft/create-7z-action@v1.0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
         with:
-          pathSource: ./build/Release
-          pathTarget: ./release.7z
-      - name: Win-${{ matrix.arch }} - ${{ matrix.qt_version }} - Uploading artifact
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-artifact@master
-        with:
-          name: Notepanda-${{ github.sha }}.Windows-${{ matrix.arch }}.qt${{ matrix.qt_version }}.7z
-          path: release.7z
-      - name: Win-${{ matrix.arch }} - ${{ matrix.qt_version }} - Upload binaries to release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'windows-latest'
-        with:
-          draft: true
-          prerelease: ${{ steps.get_version.outputs.ISBETA }}
-          files: release.7z
-          name: Notepanda.${{ steps.get_version.outputs.VERSION }}.Windows-${{ matrix.arch }}.7z
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/notepanda.dmg
+          asset_name: Notepanda-${{ steps.get_version.outputs.VERSION }}.macOS-${{ matrix.arch }}.dmg
