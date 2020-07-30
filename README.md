@@ -2,6 +2,12 @@
 
 ###### Notepanda's icon is owned by ChungZH, any unanthorized usage will be blamed.
 
+
+
+
+
+
+  `:`
 # Notepanda
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a226323cc991499b9c324238949d3cb5)](https://app.codacy.com/manual/ChungZH/notepanda?utm_source=github.com&utm_medium=referral&utm_content=ChungZH/notepanda&utm_campaign=Badge_Grade_Dashboard)
