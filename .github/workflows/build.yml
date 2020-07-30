@@ -34,7 +34,7 @@ jobs:
       - name: Install MSVC compiler
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          # 14.1 is for vs2017, 14.2 is vs2019, following the upstream vcpkg build from Qv2ray-deps repo
+          # 14.1 is for vs2017, 14.2 is vs2019
           toolset: 14.2
           arch: ${{ matrix.arch }}          
       - name: Cache Qt
@@ -69,18 +69,17 @@ jobs:
       - name: Setup Ninja
         uses: ashutoshvarma/setup-ninja@master
         with:
-          # ninja version to download. Default: 1.10.0
           version: 1.10.0
 
-      - name: Create Release
-        if: startsWith(github.event.ref, 'refs/tags/')
+      - name: Create Release      
+        if: startsWith(github.event.ref, 'refs/tags/') && matrix.platform == 'ubuntu-16.04'
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: ${{ steps.get_version.outputs }}
+          release_name: ${{ github.ref }}
           draft: true
           prerelease: ${{ steps.get_version.outputs.ISBETA }}     
 # Linux------------------------------------------
